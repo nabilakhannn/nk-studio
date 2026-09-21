@@ -14,5 +14,6 @@ dist/
 data/settings.json
 data/ledger.json
 data/pending.json
+data/users/
 public/generated/*
 !public/generated/.gitkeep

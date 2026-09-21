@@ -1,10 +1,10 @@
 # NK Studio
 
-NK Studio is a small local wrapper for the Higgsfield API by Nabila K. It gives a nontechnical user five clear screens: Home, Image, Video + B-roll, Library and Settings.
+NK Studio is a simple wrapper for the Higgsfield API by Nabila K. It gives a nontechnical user five clear screens: Home, Image, Video + B-roll, Library and Settings. It can run privately on one computer or as an isolated multi-visitor service.
 
 ## What it does
 
-- Keeps API credentials server-side in a private local file (`0600`) or private `.env`.
+- Keeps API credentials server-side. Local credentials use a private file (`0600`) or private `.env`. Hosted credentials are encrypted at rest and separated by signed browser session.
 - Shows Higgsfield's live estimate before generation.
 - Enforces a rolling 30-day spending cap on the server before submitting a request.
 - Lets the user choose among 8 image models and 7 image-to-video models from the current Higgsfield catalog.
@@ -26,16 +26,21 @@ The model picker is not decorative. Selecting a model updates the endpoint, supp
 
 ## Start
 
-Requirements: Node.js 20 or newer.
-
-1. Run `npm ci`.
-2. Copy `.env.example` to `.env` and add your own Higgsfield API credentials, or paste them once in Settings.
-3. Run `npm start`.
-4. Open `http://127.0.0.1:4180`.
+1. Copy `.env.example` to `.env`, or paste your own credentials into the private connection screen after starting.
+2. Run `npm start`.
+3. Open `http://127.0.0.1:4180`.
 
 No API secret is returned to the browser. Do not publish `.env`, `data/settings.json`, or screenshots containing credentials.
 
-NK Studio is a localhost, single-user tool. Its owner identity is the one local studio installation, and status requests are served only for request IDs recorded by that installation. It uses polling because a localhost app has no public HTTPS webhook endpoint. A hosted multi-user version would need real user authentication, tenant-scoped database records, object storage and verified/deduplicated webhooks.
+On localhost, NK Studio preserves the existing single-user files. In hosted mode, every browser receives a signed private session. API credentials are encrypted at rest, settings and histories are separated by session, and generated files are served only to the owning session. Set a strong `NK_SESSION_SECRET`, use HTTPS, and mount persistent storage at `NK_DATA_DIR` before publishing. Clearing the browser cookie ends access to that anonymous session, so viewers should download important results.
+
+## Hosted deployment
+
+1. Deploy the included `Dockerfile` to a Node-compatible host.
+2. Set `HOST=0.0.0.0`, `NK_DATA_DIR=/data`, a random 32+ character `NK_SESSION_SECRET`, and Nabila's `HIGGSFIELD_TRACKING_URL`.
+3. Mount persistent private storage at `/data`.
+4. Point the public domain to the host and require HTTPS.
+5. Do not set a shared `HF_API_KEY_ID` or `HF_API_KEY_SECRET`. Every visitor must connect their own Higgsfield account.
 
 ## Recording flow
 
@@ -49,28 +54,3 @@ NK Studio is a localhost, single-user tool. Its owner identity is the one local 
 8. Settings: show the masked connected state and spending cap. Never reveal either API credential.
 
 The catalog is curated rather than fake-complete: every listed route has a model-specific request schema and has passed a real estimate request. Viewers can extend it with additional documented Higgsfield endpoints later.
-
-## Audience resources
-
-- [Non-coder quickstart](docs/QUICKSTART.md)
-- [One guided prompt to build your own branded studio](docs/BUILD-YOUR-OWN-NK-STUDIO-PROMPT.md)
-- [Optional ad and B-roll prompt pack](docs/AD-PROMPT-PACK.md)
-- [Cinematic video quality checklist](docs/CINEMATIC-VIDEO-QC.md)
-- [Sanitized v1.0.0 release verification](docs/RELEASE-VERIFICATION.md)
-
-## License and official branding
-
-The source code is licensed under [AGPL-3.0-or-later](LICENSE). You may inspect, modify and fork it under that license. The names **NK Studio** and **Nabila K**, their logos and visual identity are not granted under the code license. Public forks must remove protected branding unless they have written permission. See [TRADEMARKS.md](TRADEMARKS.md) and [ASSET-LICENSE.md](ASSET-LICENSE.md).
-
-The only official repository is <https://github.com/nabilakhannn/nk-studio>.
-
-## Verify a signed release
-
-Each release includes `SHA256SUMS` and an SSH signature. From the folder containing both files:
-
-```bash
-ssh-keygen -Y verify -f ALLOWED_SIGNERS -I nabilakhannn -n file -s SHA256SUMS.sig < SHA256SUMS
-shasum -a 256 -c SHA256SUMS
-```
-
-This community project is not an official Higgsfield product. It does not guarantee virality, advertising performance, model availability or a fixed generation price. Review the current provider estimate before spending credits.
