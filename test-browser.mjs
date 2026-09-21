@@ -25,6 +25,15 @@ try {
   page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(message.text()); });
   await page.goto(base, { waitUntil: "networkidle" });
 
+  await page.getByRole("button", { name: "Settings" }).click();
+  if (!(await page.getByLabel("Higgsfield API key").isVisible())) {
+    throw new Error("The one-field Higgsfield connection control is missing.");
+  }
+  if (await page.getByLabel("Key ID").count() || await page.getByLabel("Key secret").count()) {
+    throw new Error("Technical split credential fields are still visible.");
+  }
+
+  await page.getByRole("button", { name: "Home" }).click();
   await page.getByRole("button", { name: /Create B-roll/ }).click();
   await page.getByLabel("Paste one line from your script").fill("One API can replace a shelf full of expensive subscriptions.");
   await page.getByRole("button", { name: "Build my B-roll prompt" }).click();

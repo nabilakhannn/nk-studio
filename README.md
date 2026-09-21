@@ -29,7 +29,7 @@ The model picker is not decorative. Selecting a model updates the endpoint, supp
 Requirements: Node.js 20 or newer.
 
 1. Run `npm ci`.
-2. Copy `.env.example` to `.env` and add your own Higgsfield API credentials, or paste them once in Settings.
+2. Copy `.env.example` to `.env` and add your own Higgsfield API credentials, or paste the single API key copied from Higgsfield once in Settings. NK Studio securely separates the Key ID and Secret for you.
 3. Run `npm start`.
 4. Open `http://127.0.0.1:4180`.
 

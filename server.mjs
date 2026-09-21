@@ -323,17 +323,21 @@ const server = createServer(async (req, res) => {
       return json(res, 200, { connected: hasCredentials(next), settings: publicSettings(next) });
     }
 
+    if (req.method === "POST" && url.pathname === "/api/connect") {
+      const body = await readJson(req);
+      const existing = await readSettings();
+      const credentials = parseHiggsfieldCredentials(body.credentials);
+      const candidate = { ...existing, ...credentials };
+      assertConnected(candidate);
+      const result = await testHiggsfieldConnection(candidate);
+      await writePrivateJson(SETTINGS_PATH, candidate);
+      return json(res, 200, { connected: true, settings: publicSettings(candidate), ...result });
+    }
+
     if (req.method === "POST" && url.pathname === "/api/test-connection") {
       const settings = await readSettings();
       assertConnected(settings);
-      const model = MODEL_CATALOG.image[1];
-      const payload = buildPayload("image", model, {
-        prompt: "Clean studio product photograph on a warm neutral background",
-        ratio: "1:1",
-        resolution: "720p",
-      });
-      const estimate = await hfJson(`/estimate${model.endpoint}`, { method: "POST", body: payload, settings });
-      return json(res, 200, { ok: true, estimate: normalizeEstimate(estimate, model, payload), model: model.label });
+      return json(res, 200, await testHiggsfieldConnection(settings));
     }
 
     if (req.method === "POST" && url.pathname === "/api/upload") {
@@ -817,6 +821,30 @@ function cleanSecret(value) {
   return text && text.length <= 500 ? text : "";
 }
 
+function parseHiggsfieldCredentials(value) {
+  const raw = cleanSecret(value)
+    .replace(/^Authorization:\s*Key\s+/i, "")
+    .replace(/^Key\s+/i, "");
+  const separator = raw.indexOf(":");
+  const apiKeyId = separator > 0 ? cleanSecret(raw.slice(0, separator)) : "";
+  const apiKeySecret = separator > 0 ? cleanSecret(raw.slice(separator + 1)) : "";
+  if (!apiKeyId || !apiKeySecret) {
+    throw new HttpError(400, "Paste the complete API key copied from Higgsfield. It contains both secure parts separated by a colon.");
+  }
+  return { apiKeyId, apiKeySecret };
+}
+
+async function testHiggsfieldConnection(settings) {
+  const model = MODEL_CATALOG.image[1];
+  const payload = buildPayload("image", model, {
+    prompt: "Clean studio product photograph on a warm neutral background",
+    ratio: "1:1",
+    resolution: "720p",
+  });
+  const estimate = await hfJson(`/estimate${model.endpoint}`, { method: "POST", body: payload, settings });
+  return { ok: true, estimate: normalizeEstimate(estimate, model, payload), model: model.label };
+}
+
 function cleanRatio(value) {
   return ["1:1", "16:9", "9:16", "4:5", "3:2", "2:3"].includes(value) ? value : "1:1";
 }
@@ -869,4 +897,4 @@ class HttpError extends Error {
   }
 }
 
-export { buildPayload, resolveEndpoint, safeRequestUrl, sanitizeModelSettings, summarizeSpend, validateGeneration, MODEL_CATALOG };
+export { buildPayload, parseHiggsfieldCredentials, resolveEndpoint, safeRequestUrl, sanitizeModelSettings, summarizeSpend, validateGeneration, MODEL_CATALOG };

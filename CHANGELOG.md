@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2
+
+- Replaced the technical Key ID and Key Secret form with one clear API-key field.
+- NK Studio now accepts the combined credential copied directly from Higgsfield.
+- Connection is tested before the credential is saved privately.
+
 ## 1.0.1
 
 - Fixed B-roll mode silently switching to text-only generation.
