@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildPayload, resolveEndpoint, safeRequestUrl, summarizeSpend, validateGeneration, MODEL_CATALOG } from "../server.mjs";
+import { buildPayload, parseHiggsfieldCredentials, resolveEndpoint, safeRequestUrl, summarizeSpend, validateGeneration, MODEL_CATALOG } from "../server.mjs";
 import { readFile } from "node:fs/promises";
 
 test("image payload maps safe controls", () => {
@@ -10,6 +10,18 @@ test("image payload maps safe controls", () => {
   assert.equal(payload.resolution, "2k");
   assert.deepEqual(payload.image_urls, ["https://example.com/a.png"]);
   assert.equal(payload.preset_id, "preset-1");
+});
+
+test("a copied Higgsfield credential is split safely at its first colon", () => {
+  assert.deepEqual(parseHiggsfieldCredentials("Key account-id:private-secret"), {
+    apiKeyId: "account-id",
+    apiKeySecret: "private-secret",
+  });
+  assert.deepEqual(parseHiggsfieldCredentials("Authorization: Key account-id:secret:with:colons"), {
+    apiKeyId: "account-id",
+    apiKeySecret: "secret:with:colons",
+  });
+  assert.throws(() => parseHiggsfieldCredentials("incomplete-key"), /complete API key/i);
 });
 
 test("video generation requires a starting image", () => {
