@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.4
+
+- Fixed the one-field API connection completing successfully but failing while clearing the form.
+- Added an automated browser test for the full Connect and test interaction.
+
 ## 1.0.2
 
 - Replaced the technical Key ID and Key Secret form with one clear API-key field.
