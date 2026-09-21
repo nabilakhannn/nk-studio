@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.6
+
+- Marketing Studio now shows only aspect ratios accepted by its live API schema.
+- Invalid legacy ratio values safely fall back to the model default before any estimate or generation request.
+
 ## 1.0.5
 
 - Stops masked or incomplete Higgsfield keys before any connection request is sent.
