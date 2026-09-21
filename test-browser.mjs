@@ -32,17 +32,27 @@ try {
   if (await page.getByLabel("Key ID").count() || await page.getByLabel("Key secret").count()) {
     throw new Error("Technical split credential fields are still visible.");
   }
-  await page.route("**/api/connect", (route) => route.fulfill({
+  let connectRequests = 0;
+  await page.route("**/api/connect", (route) => {
+    connectRequests += 1;
+    return route.fulfill({
     status: 200,
     contentType: "application/json",
     body: JSON.stringify({ connected: true, model: "Soul Standard", estimate: { usd: 0.01 } }),
-  }));
+    });
+  });
+  await page.getByLabel("Higgsfield API key").fill("a04d••••0daf");
+  await page.getByRole("button", { name: "Connect and test" }).click();
+  if (connectRequests !== 0 || !(await page.locator("#toast").innerText()).includes("Copy API Key")) {
+    throw new Error("A masked Higgsfield key was not stopped with a clear recovery instruction.");
+  }
   await page.getByLabel("Higgsfield API key").fill("test-id:test-secret");
   await page.getByRole("button", { name: "Connect and test" }).click();
   await page.waitForFunction(() => document.querySelector('[name="credentials"]')?.value === "");
   if ((await page.getByLabel("Higgsfield API key").inputValue()) !== "") {
     throw new Error("The API key field was not cleared safely after a successful connection.");
   }
+  if (connectRequests !== 1) throw new Error("The valid API key was not submitted exactly once.");
 
   await page.getByRole("button", { name: "Home" }).click();
   await page.getByRole("button", { name: /Create B-roll/ }).click();

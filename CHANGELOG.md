@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.5
+
+- Stops masked or incomplete Higgsfield keys before any connection request is sent.
+- Gives beginners a direct instruction to use Higgsfield's Copy API Key button.
+- Preserves an already working connection when a replacement key is invalid.
+- Accepts the common `HF_CREDENTIALS` copy format as well as the raw combined key.
+
 ## 1.0.4
 
 - Fixed the one-field API connection completing successfully but failing while clearing the form.
