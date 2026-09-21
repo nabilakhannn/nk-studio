@@ -32,6 +32,17 @@ try {
   if (await page.getByLabel("Key ID").count() || await page.getByLabel("Key secret").count()) {
     throw new Error("Technical split credential fields are still visible.");
   }
+  await page.route("**/api/connect", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ connected: true, model: "Soul Standard", estimate: { usd: 0.01 } }),
+  }));
+  await page.getByLabel("Higgsfield API key").fill("test-id:test-secret");
+  await page.getByRole("button", { name: "Connect and test" }).click();
+  await page.waitForFunction(() => document.querySelector('[name="credentials"]')?.value === "");
+  if ((await page.getByLabel("Higgsfield API key").inputValue()) !== "") {
+    throw new Error("The API key field was not cleared safely after a successful connection.");
+  }
 
   await page.getByRole("button", { name: "Home" }).click();
   await page.getByRole("button", { name: /Create B-roll/ }).click();
