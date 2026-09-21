@@ -21,7 +21,12 @@ test("a copied Higgsfield credential is split safely at its first colon", () => 
     apiKeyId: "account-id",
     apiKeySecret: "secret:with:colons",
   });
-  assert.throws(() => parseHiggsfieldCredentials("incomplete-key"), /complete API key/i);
+  assert.deepEqual(parseHiggsfieldCredentials('HF_CREDENTIALS="account-id:private-secret"'), {
+    apiKeyId: "account-id",
+    apiKeySecret: "private-secret",
+  });
+  assert.throws(() => parseHiggsfieldCredentials("incomplete-key"), /Copy API Key/i);
+  assert.throws(() => parseHiggsfieldCredentials("a04d••••0daf"), /masked preview/i);
 });
 
 test("video generation requires a starting image", () => {

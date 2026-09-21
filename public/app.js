@@ -71,17 +71,24 @@ function bindForms() {
     event.preventDefault();
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
+    const credentials = String(form.get("credentials") || "").trim();
+    if (!credentials.includes(":") || /[•●]/.test(credentials)) {
+      const prefix = state.bootstrap.connected ? "Your saved key is still connected. " : "Connection not saved. ";
+      toast(`${prefix}In Higgsfield, click Copy API Key, then paste the complete copied key here. Do not copy the masked preview.`, true);
+      return;
+    }
     const submit = formElement.querySelector("button[type='submit']");
     submit.disabled = true;
     const original = submit.textContent;
     submit.textContent = "Connecting safely...";
     try {
-      const result = await api("/api/connect", { method: "POST", body: { credentials: form.get("credentials") } });
+      const result = await api("/api/connect", { method: "POST", body: { credentials } });
       formElement.reset();
       await refresh();
       toast(`Connected. Live ${result.model} estimate: $${result.estimate.usd}`);
     } catch (error) {
-      toast(`Not connected. ${error.message}`, true);
+      const prefix = state.bootstrap.connected ? "Your saved key is still connected. " : "Connection not saved. ";
+      toast(`${prefix}${error.message}`, true);
     } finally {
       submit.disabled = false;
       submit.textContent = original;

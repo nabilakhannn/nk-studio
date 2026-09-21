@@ -823,13 +823,15 @@ function cleanSecret(value) {
 
 function parseHiggsfieldCredentials(value) {
   const raw = cleanSecret(value)
+    .replace(/^HF_CREDENTIALS\s*=\s*/i, "")
+    .replace(/^(['"])(.*)\1$/, "$2")
     .replace(/^Authorization:\s*Key\s+/i, "")
     .replace(/^Key\s+/i, "");
   const separator = raw.indexOf(":");
   const apiKeyId = separator > 0 ? cleanSecret(raw.slice(0, separator)) : "";
   const apiKeySecret = separator > 0 ? cleanSecret(raw.slice(separator + 1)) : "";
-  if (!apiKeyId || !apiKeySecret) {
-    throw new HttpError(400, "Paste the complete API key copied from Higgsfield. It contains both secure parts separated by a colon.");
+  if (!apiKeyId || !apiKeySecret || /[•●]/.test(raw)) {
+    throw new HttpError(400, "In Higgsfield, click Copy API Key, then paste the complete copied key here. Do not copy the masked preview.");
   }
   return { apiKeyId, apiKeySecret };
 }
