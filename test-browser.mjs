@@ -30,8 +30,11 @@ try {
   await page.getByRole("button", { name: "Build my B-roll prompt" }).click();
 
   const prompt = await page.locator("#videoPrompt").inputValue();
-  if (!prompt.includes("first-second pattern interrupt") || !prompt.includes("clean one-second hero hold")) {
+  if (!prompt.includes("strict character and wardrobe reference") || !prompt.includes("one location, one subject action and one smooth motivated camera move")) {
     throw new Error("B-roll prompt builder did not create the expected cinematic prompt.");
+  }
+  if ((await page.locator("#videoMode").inputValue()) !== "image" || !(await page.locator("#videoUploadBox").isVisible())) {
+    throw new Error("B-roll workflow did not keep the character or starting-image input visible.");
   }
   if ((await page.locator("#videoModels").inputValue()) !== "seedance-2") {
     throw new Error("B-roll workflow did not select the safe Seedance starting model.");

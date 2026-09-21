@@ -150,6 +150,12 @@ function renderVideoInputs() {
   const imageMode = document.getElementById("videoMode").value === "image";
   document.getElementById("videoUploadBox").hidden = !imageMode;
   document.getElementById("videoEndUploadBox").hidden = !imageMode || !model.supportsEndImage;
+  document.getElementById("videoUploadLabel").textContent = state.videoPurpose === "broll"
+    ? "Character or starting image · required"
+    : "Starting image · required";
+  document.getElementById("videoModeHint").textContent = imageMode
+    ? "The uploaded character, clothing and scene become the first frame and visual anchor."
+    : "Text only lets the model invent the character and is less consistent.";
 }
 
 function setVideoPurpose(purpose) {
@@ -161,8 +167,8 @@ function setVideoPurpose(purpose) {
   }
   document.querySelectorAll(".purpose-option").forEach((button) => button.classList.toggle("active", button.dataset.videoPurpose === state.videoPurpose));
   document.getElementById("brollBuilder").hidden = !broll;
-  document.getElementById("videoModeField").hidden = broll;
-  document.getElementById("videoMode").value = broll ? "text" : "image";
+  document.getElementById("videoModeField").hidden = false;
+  document.getElementById("videoMode").value = "image";
   document.getElementById("videoPromptLabel").textContent = broll ? "Generated B-roll prompt" : "How should the image move?";
   document.getElementById("videoPromptHint").textContent = broll ? "Review or edit this prompt before checking the price." : "Describe camera motion, subject motion and the final hold.";
   document.getElementById("videoPreviewTitle").textContent = broll ? "B-roll preview" : "Video preview";
@@ -175,7 +181,12 @@ function buildBrollPrompt() {
   const line = document.getElementById("brollLine").value.trim();
   if (!line) return toast("Paste one script line first.", true);
   const style = document.getElementById("brollStyle").value;
-  document.getElementById("videoPrompt").value = `Create a 5-second ${style} B-roll shot that visually communicates: "${line}". Start with one striking first-second pattern interrupt. Use one clear subject, cinematic composition, intentional foreground-to-background depth, smooth motivated camera movement, realistic material detail, controlled lighting, and a satisfying visual transformation. End on a clean one-second hero hold that gives the editor a natural cut point. No captions, no interface, no watermark, no logo, no talking head, no random object morphing, no extra fingers or distorted anatomy. 16:9, premium commercial color grade, 24 fps.`;
+  const duration = document.querySelector('#videoSettings [data-setting="duration"]')?.value || 5;
+  const usesReference = document.getElementById("videoMode").value === "image";
+  const referenceRule = usesReference
+    ? "Treat the uploaded image as a strict character and wardrobe reference. Preserve the same blank face, clothing, colors, body proportions and setting. Animate it without redesigning or replacing the subject."
+    : "Create one visually clear subject and keep its identity, wardrobe and proportions unchanged for the entire shot.";
+  document.getElementById("videoPrompt").value = `Create one continuous ${duration}-second ${style} B-roll shot that visually communicates: "${line}". ${referenceRule} Use one location, one subject action and one smooth motivated camera move. Begin with an immediately readable close detail, reveal the meaning through controlled camera movement, and finish on a stable one-second hold. Premium cinematic lighting, strong depth, restrained motion and physically coherent realism. No scene changes, no additional characters, no captions, no readable text, no logos, no interface, no watermark, no face generation, no wardrobe change, no duplicate subject, no body morphing, no extra limbs, no flicker and no camera shake. 16:9, premium commercial color grade, 24 fps.`;
   resetEstimate("video");
   toast("B-roll prompt ready. Review it, then see the real price.");
 }

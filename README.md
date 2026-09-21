@@ -43,7 +43,7 @@ NK Studio is a localhost, single-user tool. Its owner identity is the one local 
 2. Image: choose the model that fits the job. For this ad demo, use Marketing Studio Image and upload the product photo.
 3. Click **See real price** and show the live USD + credits estimate.
 4. Click **Generate image** and show the real result.
-5. Video + B-roll: choose **Animate an image** for a product shot, or **B-roll Generator** to turn one script line into a cinematic text-to-video prompt. You can still choose the model.
+5. Video + B-roll: choose **Animate an image** for a product shot, or **B-roll Generator** to turn one script line into a cinematic prompt. B-roll defaults to image-to-video so an uploaded character, outfit or scene remains the visual anchor. Choose **Text only** only when you want the model to invent the subject.
 6. Click **See real price**, then **Generate video**.
 7. Library: show the outputs, prompts and costs.
 8. Settings: show the masked connected state and spending cap. Never reveal either API credential.

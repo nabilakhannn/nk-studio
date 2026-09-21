@@ -1,6 +1,6 @@
 {
   "name": "nk-studio",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": false,
   "description": "A local-first Higgsfield API workspace for AI images, cinematic product ads and script-to-video B-roll.",
   "license": "AGPL-3.0-or-later",
