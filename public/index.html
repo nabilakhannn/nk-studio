@@ -76,7 +76,7 @@
               <div class="step-label">02 · CHOOSE A MODEL</div>
               <label class="model-picker">Video model<select id="videoModels" aria-label="Choose video model"></select></label>
               <div class="model-summary" id="videoModelSummary"></div>
-              <label id="videoModeField">Start from<select name="mode" id="videoMode"><option value="image" selected>One image · recommended for this demo</option><option value="text">Text only</option></select><span class="hint">Image-to-video protects your product look. Text-to-video gives the model more freedom.</span></label>
+              <label id="videoModeField">Start from<select name="mode" id="videoMode"><option value="image" selected>My uploaded character or image · recommended</option><option value="text">Text only · invent a new character</option></select><span class="hint" id="videoModeHint">Use an image when the person, product or outfit must stay consistent.</span></label>
               <div class="broll-builder" id="brollBuilder" hidden>
                 <label>Paste one line from your script<textarea id="brollLine" rows="3" placeholder="Example: One API can replace a shelf full of subscriptions."></textarea><span class="hint">Write the idea you are saying—not a technical video prompt.</span></label>
                 <label>Visual style<select id="brollStyle"><option value="cinematic metaphor">Cinematic visual metaphor</option><option value="premium motion graphics">Premium motion graphics</option><option value="realistic documentary">Realistic documentary</option><option value="futuristic system reveal">Futuristic system reveal</option></select></label>
@@ -85,7 +85,7 @@
               </div>
               <label><span id="videoPromptLabel">How should the image move?</span><textarea name="prompt" id="videoPrompt" rows="5">Slow cinematic push-in. Coffee beans rise in a controlled spiral, crema particles catch the warm light, the bag remains perfectly readable, subtle parallax, premium commercial pacing, clean final hero hold.</textarea><span class="hint" id="videoPromptHint">Describe camera motion, subject motion and the final hold.</span></label>
               <div class="dynamic-settings" id="videoSettings"></div>
-              <label class="upload-box required" id="videoUploadBox">Starting image · required<input type="file" name="reference" accept="image/png,image/jpeg,image/webp" /><span id="videoFileName">Use your generated image or upload one</span></label>
+              <label class="upload-box required" id="videoUploadBox"><span id="videoUploadLabel">Starting image · required</span><input type="file" name="reference" accept="image/png,image/jpeg,image/webp" /><span id="videoFileName">Upload the exact character, product or scene to preserve</span></label>
               <label class="upload-box" id="videoEndUploadBox" hidden>Ending image · optional<input type="file" name="endReference" accept="image/png,image/jpeg,image/webp" /><span id="videoEndFileName">Control exactly where the clip finishes</span></label>
               <div class="action-stack"><button type="button" class="estimate" data-action="estimate" data-kind="video">1. See real price</button><button type="submit" class="primary generate" disabled>2. Generate video <span>→</span></button><p class="micro">The cap blocks the request if this price takes you over budget.</p></div>
             </form>

@@ -10,6 +10,6 @@ On Image or Video, first choose the model. NK Studio will show what that model i
 
 Always press **See real price** before **Generate**. The second button stays disabled until a current estimate succeeds.
 
-For editor B-roll: open **Video + B-roll**, choose **B-roll Generator**, paste one narration line, choose a visual style, and click **Build my B-roll prompt**. That prompt-building step is free. Review it, choose any supported model, then check the real API price before generating.
+For editor B-roll: open **Video + B-roll**, choose **B-roll Generator**, keep **My uploaded character or image** selected, and upload the exact character, product or scene you want to preserve. Paste one narration line, choose a visual style, and click **Build my B-roll prompt**. That prompt-building step is free. Review it, choose any supported model, then check the real API price before generating. Select **Text only** only when character consistency does not matter.
 
 The app runs on your computer at `http://127.0.0.1:4180`. It is not a hosted multi-user service. If you put it online, you must add proper authentication, encrypted secret storage, abuse controls, secure object storage and a production database first.
