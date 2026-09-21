@@ -69,14 +69,15 @@ function bindForms() {
 
   document.getElementById("settingsForm").addEventListener("submit", async (event) => {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const submit = event.currentTarget.querySelector("button[type='submit']");
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const submit = formElement.querySelector("button[type='submit']");
     submit.disabled = true;
     const original = submit.textContent;
     submit.textContent = "Connecting safely...";
     try {
       const result = await api("/api/connect", { method: "POST", body: { credentials: form.get("credentials") } });
-      event.currentTarget.reset();
+      formElement.reset();
       await refresh();
       toast(`Connected. Live ${result.model} estimate: $${result.estimate.usd}`);
     } catch (error) {
