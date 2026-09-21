@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NK Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand"><span>NK</span><div><strong>Studio</strong><small>by Nabila K</small></div></div>
+        <nav aria-label="Main navigation">
+          <button class="nav-item active" data-view="home"><span>⌂</span>Home</button>
+          <button class="nav-item" data-view="image"><span>▧</span>Image</button>
+          <button class="nav-item" data-view="video"><span>◫</span>Video + B-roll</button>
+          <button class="nav-item" data-view="library"><span>▦</span>Library</button>
+          <button class="nav-item" data-view="settings"><span>⚙</span>Settings</button>
+        </nav>
+        <div class="connection-card"><i id="connectionDot"></i><div><strong id="connectionText">Checking…</strong><small>Higgsfield API</small></div></div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div><p class="eyebrow" id="viewEyebrow">YOUR CONTROL ROOM</p><h1 id="viewTitle">Create without subscription anxiety.</h1></div>
+          <button class="secondary" id="openSettings">Spending cap <strong id="capBadge">$10</strong></button>
+        </header>
+
+        <section class="view active" id="view-home">
+          <div class="hero-card">
+            <div><p class="eyebrow">PAY ONLY WHEN YOU CREATE</p><h2>One key. The right model for every job.</h2><p>Choose the model that fits your result, let NK Studio show only its valid controls, and see the real API estimate before any request runs.</p></div>
+            <button class="primary" data-go="image">Create your first image <span>→</span></button>
+          </div>
+          <div class="stat-grid">
+            <article><small>SPENT TODAY</small><strong id="spendToday">$0.00</strong><span>Real completed generations</span></article>
+            <article><small>LAST 30 DAYS</small><strong id="spendMonth">$0.00</strong><span>Protected by your cap</span></article>
+            <article><small>ALL TIME</small><strong id="spendAll">$0.00</strong><span>Saved locally</span></article>
+          </div>
+          <div class="section-head"><div><p class="eyebrow">START HERE</p><h2>Pick one outcome</h2></div></div>
+          <div class="shortcut-grid">
+            <button class="shortcut" data-go="image"><span class="icon">▧</span><strong>Make an image</strong><small>Product shot, poster, lifestyle visual</small><b>→</b></button>
+            <button class="shortcut" data-go="video" data-video-purpose="ad"><span class="icon">◫</span><strong>Animate an image</strong><small>Turn one frame into a cinematic clip</small><b>→</b></button>
+            <button class="shortcut" data-go="video" data-video-purpose="broll"><span class="icon">▶</span><strong>Create B-roll</strong><small>Turn one script line into a cinematic shot</small><b>→</b></button>
+          </div>
+          <div class="section-head"><div><p class="eyebrow">RECENT WORK</p><h2>Your local library</h2></div><button class="text-button" data-go="library">See all →</button></div>
+          <div class="recent-grid" id="recentGrid"></div>
+        </section>
+
+        <section class="view" id="view-image">
+          <div class="creator-layout">
+            <form class="control-card" id="imageForm">
+              <div class="step-label">01 · CHOOSE A MODEL</div>
+              <label class="model-picker">Image model<select id="imageModels" aria-label="Choose image model"></select></label>
+              <div class="model-summary" id="imageModelSummary"></div>
+              <label id="presetField">Ad layout<select name="presetId" id="presetSelect"></select><span class="hint">These layouts are fetched live from Higgsfield, so the app does not rely on an expired preset.</span></label>
+              <label>What should the image show?<textarea name="prompt" rows="5">Premium coffee bag on a dark walnut table, rich crema swirling into a halo behind it, warm sunrise rim light, tactile packaging, luxury commercial photography, clean label, cinematic depth</textarea><span class="hint">Describe the subject, setting, lighting and feeling. NK Studio sends this to Higgsfield.</span></label>
+              <div class="dynamic-settings" id="imageSettings"></div>
+              <label class="upload-box required" id="imageUploadBox">Product/reference image · required for Marketing Studio<input type="file" name="reference" accept="image/png,image/jpeg,image/webp" /><span id="imageFileName">PNG, JPG or WebP · max 12 MB</span></label>
+              <div class="action-stack"><button type="button" class="estimate" data-action="estimate" data-kind="image">1. See real price</button><button type="submit" class="primary generate" disabled>2. Generate image <span>→</span></button><p class="micro">Nothing is generated until you press step 2.</p></div>
+            </form>
+            <div class="result-card"><div class="result-head"><div><p class="eyebrow">LIVE RESULT</p><h2>Image preview</h2></div><span class="status-pill" id="imageStatus">Ready</span></div><div class="result-stage" id="imageStage"><div class="empty"><span>▧</span><strong>Your generated image appears here</strong><small>Check the price first, then create.</small></div></div><div class="proof-strip" id="imageProof">No API request yet.</div></div>
+          </div>
+        </section>
+
+        <section class="view" id="view-video">
+          <div class="creator-layout">
+            <form class="control-card" id="videoForm">
+              <div class="step-label">01 · CHOOSE YOUR WORKFLOW</div>
+              <div class="purpose-switch" role="group" aria-label="Choose video workflow">
+                <button class="purpose-option active" type="button" data-video-purpose="ad"><strong>Animate an image</strong><small>Product ads and controlled motion</small></button>
+                <button class="purpose-option" type="button" data-video-purpose="broll"><strong>B-roll Generator</strong><small>Script line to cinematic footage</small></button>
+              </div>
+              <div class="step-label">02 · CHOOSE A MODEL</div>
+              <label class="model-picker">Video model<select id="videoModels" aria-label="Choose video model"></select></label>
+              <div class="model-summary" id="videoModelSummary"></div>
+              <label id="videoModeField">Start from<select name="mode" id="videoMode"><option value="image" selected>One image · recommended for this demo</option><option value="text">Text only</option></select><span class="hint">Image-to-video protects your product look. Text-to-video gives the model more freedom.</span></label>
+              <div class="broll-builder" id="brollBuilder" hidden>
+                <label>Paste one line from your script<textarea id="brollLine" rows="3" placeholder="Example: One API can replace a shelf full of subscriptions."></textarea><span class="hint">Write the idea you are saying—not a technical video prompt.</span></label>
+                <label>Visual style<select id="brollStyle"><option value="cinematic metaphor">Cinematic visual metaphor</option><option value="premium motion graphics">Premium motion graphics</option><option value="realistic documentary">Realistic documentary</option><option value="futuristic system reveal">Futuristic system reveal</option></select></label>
+                <button class="secondary" id="buildBrollPrompt" type="button">Build my B-roll prompt</button>
+                <p class="micro">Free step. The prompt is built on your computer and uses no generation credits.</p>
+              </div>
+              <label><span id="videoPromptLabel">How should the image move?</span><textarea name="prompt" id="videoPrompt" rows="5">Slow cinematic push-in. Coffee beans rise in a controlled spiral, crema particles catch the warm light, the bag remains perfectly readable, subtle parallax, premium commercial pacing, clean final hero hold.</textarea><span class="hint" id="videoPromptHint">Describe camera motion, subject motion and the final hold.</span></label>
+              <div class="dynamic-settings" id="videoSettings"></div>
+              <label class="upload-box required" id="videoUploadBox">Starting image · required<input type="file" name="reference" accept="image/png,image/jpeg,image/webp" /><span id="videoFileName">Use your generated image or upload one</span></label>
+              <label class="upload-box" id="videoEndUploadBox" hidden>Ending image · optional<input type="file" name="endReference" accept="image/png,image/jpeg,image/webp" /><span id="videoEndFileName">Control exactly where the clip finishes</span></label>
+              <div class="action-stack"><button type="button" class="estimate" data-action="estimate" data-kind="video">1. See real price</button><button type="submit" class="primary generate" disabled>2. Generate video <span>→</span></button><p class="micro">The cap blocks the request if this price takes you over budget.</p></div>
+            </form>
+            <div class="result-card"><div class="result-head"><div><p class="eyebrow">LIVE RESULT</p><h2 id="videoPreviewTitle">Video preview</h2></div><span class="status-pill" id="videoStatus">Ready</span></div><div class="result-stage video-stage" id="videoStage"><div class="empty"><span>◫</span><strong>Your cinematic clip appears here</strong><small id="videoEmptyHint">Upload one still, describe motion, then create.</small></div></div><div class="proof-strip" id="videoProof">No API request yet.</div></div>
+          </div>
+        </section>
+
+        <section class="view" id="view-library">
+          <div class="section-head"><div><p class="eyebrow">SAVED LOCALLY</p><h2>Every result, prompt and cost</h2></div><select id="libraryFilter"><option value="all">All work</option><option value="image">Images</option><option value="video">Videos</option></select></div>
+          <div class="library-grid" id="libraryGrid"></div>
+        </section>
+
+        <section class="view" id="view-settings">
+          <div class="settings-grid">
+            <form class="settings-card" id="settingsForm"><p class="eyebrow">PRIVATE CONNECTION</p><h2>Connect Higgsfield</h2><p>Your key is sent only to this app on <strong>your own computer</strong>, stored in a private local file, and never shown back on screen.</p><label>Key ID<input type="password" name="apiKeyId" autocomplete="off" placeholder="Paste Key ID" /></label><label>Key secret<input type="password" name="apiKeySecret" autocomplete="off" placeholder="Paste Key Secret" /></label><div class="button-row"><button class="primary" type="submit">Save privately</button><button class="secondary" type="button" id="testConnection">Test connection</button></div><a class="external" href="https://open.higgsfield.ai/" target="_blank" rel="noreferrer">Open Higgsfield API dashboard ↗</a></form>
+            <form class="settings-card" id="limitsForm"><p class="eyebrow">SPENDING GUARDRAIL</p><h2>Set a hard cap</h2><p>NK Studio checks the real estimate before every request. If it would cross this rolling 30-day limit, the generation is blocked.</p><label>30-day cap (USD)<input type="number" name="spendCapUsd" min="0" step="1" value="10" /></label><label>Concurrent requests<select name="concurrentRequests"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label><button class="primary" type="submit">Save limit</button><p class="micro">Set $0 only if you intentionally want no cap.</p></form>
+          </div>
+        </section>
+      </main>
+    </div>
+    <div class="toast" id="toast" role="status"></div>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

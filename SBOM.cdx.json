@@ -1,0 +1,181 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:183f28d4-7bb3-43ec-9daa-b8ba8ed67b02",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-09-21T05:06:22.980Z",
+    "lifecycles": [
+      {
+        "phase": "build"
+      }
+    ],
+    "tools": [
+      {
+        "vendor": "npm",
+        "name": "cli",
+        "version": "10.9.8"
+      }
+    ],
+    "component": {
+      "bom-ref": "nk-studio@1.0.0",
+      "type": "library",
+      "name": "nk-studio",
+      "version": "1.0.0",
+      "scope": "required",
+      "author": "Nabila K",
+      "description": "A local-first Higgsfield API workspace for AI images, cinematic product ads and script-to-video B-roll.",
+      "purl": "pkg:npm/nk-studio@1.0.0",
+      "properties": [
+        {
+          "name": "cdx:npm:package:path",
+          "value": ""
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/nabilakhannn/nk-studio.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/nabilakhannn/nk-studio#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/nabilakhannn/nk-studio/issues"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "AGPL-3.0-or-later"
+          }
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "bom-ref": "playwright@1.63.0",
+      "type": "library",
+      "name": "playwright",
+      "version": "1.63.0",
+      "scope": "optional",
+      "author": "Microsoft Corporation",
+      "description": "A high-level API to automate web browsers",
+      "purl": "pkg:npm/playwright@1.63.0",
+      "properties": [
+        {
+          "name": "cdx:npm:package:path",
+          "value": "node_modules/playwright"
+        },
+        {
+          "name": "cdx:npm:package:development",
+          "value": "true"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/playwright/-/playwright-1.63.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/microsoft/playwright.git"
+        },
+        {
+          "type": "website",
+          "url": "https://playwright.dev"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/microsoft/playwright/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "fbbce204b89d4b835a34276de7b4940d3fb062699de5f9a241e8d489cfe46fe62c61208fc8e384f6c79bccc8cd990aec9cda4326a778587bd5ffc95f29f50352"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "playwright-core@1.63.0",
+      "type": "library",
+      "name": "playwright-core",
+      "version": "1.63.0",
+      "scope": "optional",
+      "author": "Microsoft Corporation",
+      "description": "A high-level API to automate web browsers",
+      "purl": "pkg:npm/playwright-core@1.63.0",
+      "properties": [
+        {
+          "name": "cdx:npm:package:path",
+          "value": "node_modules/playwright-core"
+        },
+        {
+          "name": "cdx:npm:package:development",
+          "value": "true"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/playwright-core/-/playwright-core-1.63.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/microsoft/playwright.git"
+        },
+        {
+          "type": "website",
+          "url": "https://playwright.dev"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/microsoft/playwright/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "ad80ac045fcce478d4721e766dbb5538d1058efe97bbcb26f21ef674d951e5bcc81357ef0bf6f182ca7392349f53e3307843263ccf0a25e6c6ea79f2c68e660a"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "nk-studio@1.0.0",
+      "dependsOn": [
+        "playwright@1.63.0"
+      ]
+    },
+    {
+      "ref": "playwright@1.63.0",
+      "dependsOn": [
+        "playwright-core@1.63.0"
+      ]
+    },
+    {
+      "ref": "playwright-core@1.63.0",
+      "dependsOn": []
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "nk-studio",
+  "version": "1.0.0",
+  "private": false,
+  "description": "A local-first Higgsfield API workspace for AI images, cinematic product ads and script-to-video B-roll.",
+  "license": "AGPL-3.0-or-later",
+  "author": "Nabila K",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nabilakhannn/nk-studio.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nabilakhannn/nk-studio/issues"
+  },
+  "homepage": "https://github.com/nabilakhannn/nk-studio#readme",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "check": "node --check server.mjs && node --check public/app.js && node --check test-browser.mjs && node --test test/*.test.mjs && node test-browser.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}
