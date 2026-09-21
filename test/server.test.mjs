@@ -12,6 +12,20 @@ test("image payload maps safe controls", () => {
   assert.equal(payload.preset_id, "preset-1");
 });
 
+test("Marketing Studio exposes only its accepted aspect ratios", () => {
+  const model = MODEL_CATALOG.image.find((entry) => entry.id === "marketing-studio-image");
+  const ratio = model.settings.find((setting) => setting.id === "ratio");
+  assert.deepEqual(ratio.options, ["auto", "1:1", "3:2", "2:3", "4:3", "3:4", "16:9", "9:16", "21:9"]);
+  const payload = buildPayload("image", model, {
+    prompt: "Premium product campaign",
+    ratio: "4:5",
+    resolution: "2k",
+    presetId: "preset-1",
+    referenceUrl: "https://example.com/product.jpg",
+  });
+  assert.equal(payload.aspect_ratio, "1:1");
+});
+
 test("a copied Higgsfield credential is split safely at its first colon", () => {
   assert.deepEqual(parseHiggsfieldCredentials("Key account-id:private-secret"), {
     apiKeyId: "account-id",

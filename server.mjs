@@ -40,7 +40,7 @@ const MODEL_CATALOG = {
       priceHint: "From $0.0121/image before account discounts",
       startImage: "required",
       settings: [
-        selectSetting("ratio", "Shape", ["1:1", "16:9", "9:16", "4:5", "3:2", "2:3"], "1:1"),
+        selectSetting("ratio", "Shape", ["auto", "1:1", "3:2", "2:3", "4:3", "3:4", "16:9", "9:16", "21:9"], "1:1"),
         selectSetting("resolution", "Quality", ["1k", "2k", "4k"], "2k"),
         toggleSetting("enhancePrompt", "Improve my prompt", true, true),
       ],
