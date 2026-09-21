@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildPayload, resolveEndpoint, safeRequestUrl, summarizeSpend, validateGeneration, MODEL_CATALOG } from "../server.mjs";
+import { buildPayload, resolveEndpoint, resolveHiggsfieldDestination, safeRequestUrl, summarizeSpend, validateGeneration, MODEL_CATALOG } from "../server.mjs";
 import { readFile } from "node:fs/promises";
 
 test("image payload maps safe controls", () => {
@@ -88,6 +88,14 @@ test("request lifecycle URLs safely fall back after an accepted generation", () 
   assert.equal(safeRequestUrl("https://api.higgsfield.ai/unexpected/path", requestId, "status"), documented);
 });
 
+test("guided Higgsfield links use the tracking URL only for trusted Higgsfield hosts", () => {
+  assert.equal(resolveHiggsfieldDestination("signup", "https://higgsfield.ai/?fpr=nabila"), "https://higgsfield.ai/?fpr=nabila");
+  assert.equal(resolveHiggsfieldDestination("signup", "https://open.higgsfield.ai/welcome?ref=nabila"), "https://open.higgsfield.ai/welcome?ref=nabila");
+  assert.equal(resolveHiggsfieldDestination("signup", "https://example.com/steal"), "https://higgsfield.ai/");
+  assert.equal(resolveHiggsfieldDestination("billing"), "https://open.higgsfield.ai/billing");
+  assert.equal(resolveHiggsfieldDestination("keys"), "https://open.higgsfield.ai/api-keys");
+});
+
 test("the recording UI exposes a clear B-roll generator with Nabila K branding", async () => {
   const html = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
   const app = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
@@ -95,4 +103,7 @@ test("the recording UI exposes a clear B-roll generator with Nabila K branding",
   assert.match(html, /Turn one script line into a cinematic shot/);
   assert.match(app, /function buildBrollPrompt/);
   assert.match(html, /<small>by Nabila K<\/small>/);
+  assert.match(html, /Start in three simple steps/i);
+  assert.match(html, /href="\/go\/higgsfield"/);
+  assert.match(html, /Connect and test/);
 });

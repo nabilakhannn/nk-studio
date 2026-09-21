@@ -1,25 +1,31 @@
 import { createServer } from "node:http";
-import { createHash } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
+loadEnv(join(ROOT, ".env"));
+if (process.env.NK_CREDENTIALS_ENV) loadEnv(process.env.NK_CREDENTIALS_ENV);
+
 const PUBLIC = join(ROOT, "public");
-const DATA = join(ROOT, "data");
+const DATA = process.env.NK_DATA_DIR || join(ROOT, "data");
 const GENERATED = join(PUBLIC, "generated");
 const SETTINGS_PATH = join(DATA, "settings.json");
 const LEDGER_PATH = join(DATA, "ledger.json");
 const PENDING_PATH = join(DATA, "pending.json");
 const API_BASE = "https://api.higgsfield.ai";
+const HIGGSFIELD_DESTINATIONS = {
+  signup: "https://higgsfield.ai/",
+  billing: "https://open.higgsfield.ai/billing",
+  keys: "https://open.higgsfield.ai/api-keys",
+};
 const LOCAL_OWNER_ID = "local-owner";
 const PORT = Number(process.env.PORT || 4180);
+const HOST = process.env.HOST || "127.0.0.1";
 const MODE = process.env.HF_MODE === "demo" ? "demo" : "live";
 const MAX_BODY_BYTES = 24 * 1024 * 1024;
-
-loadEnv(join(ROOT, ".env"));
-if (process.env.NK_CREDENTIALS_ENV) loadEnv(process.env.NK_CREDENTIALS_ENV);
 
 const IMAGE_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"];
 const VIDEO_RATIOS = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"];
@@ -294,9 +300,27 @@ const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
 
+    if (req.method === "GET" && url.pathname === "/go/higgsfield") {
+      return redirect(res, resolveHiggsfieldDestination("signup"));
+    }
+
+    if (req.method === "GET" && url.pathname === "/go/higgsfield/billing") {
+      return redirect(res, resolveHiggsfieldDestination("billing"));
+    }
+
+    if (req.method === "GET" && url.pathname === "/go/higgsfield/keys") {
+      return redirect(res, resolveHiggsfieldDestination("keys"));
+    }
+
+    if (req.method === "GET" && url.pathname === "/health") {
+      return json(res, 200, { ok: true });
+    }
+
+    const ownerId = url.pathname.startsWith("/api/") ? resolveOwnerId(req, res) : LOCAL_OWNER_ID;
+
     if (req.method === "GET" && url.pathname === "/api/bootstrap") {
-      const settings = await readSettings();
-      const ledger = await readLedger();
+      const settings = await readSettings(ownerId);
+      const ledger = await readLedger(ownerId);
       const presets = hasCredentials(settings) ? await getMarketingPresets(settings) : [];
       return json(res, 200, {
         name: "NK Studio",
@@ -312,34 +336,41 @@ const server = createServer(async (req, res) => {
 
     if (req.method === "POST" && url.pathname === "/api/settings") {
       const body = await readJson(req);
-      const existing = await readSettings();
+      const existing = await readSettings(ownerId);
       const next = {
         spendCapUsd: optionalPositive(body.spendCapUsd, existing.spendCapUsd ?? 10),
         concurrentRequests: clampInt(body.concurrentRequests, 1, 4, existing.concurrentRequests ?? 2),
         apiKeyId: cleanSecret(body.apiKeyId) || existing.apiKeyId || "",
         apiKeySecret: cleanSecret(body.apiKeySecret) || existing.apiKeySecret || "",
       };
-      await writePrivateJson(SETTINGS_PATH, next);
+      await writeSettings(ownerId, next);
       return json(res, 200, { connected: hasCredentials(next), settings: publicSettings(next) });
     }
 
+    if (req.method === "POST" && url.pathname === "/api/connect") {
+      const body = await readJson(req);
+      const existing = await readSettings(ownerId);
+      const candidate = {
+        ...existing,
+        apiKeyId: cleanSecret(body.apiKeyId),
+        apiKeySecret: cleanSecret(body.apiKeySecret),
+      };
+      assertConnected(candidate);
+      const result = await testHiggsfieldConnection(candidate);
+      await writeSettings(ownerId, candidate);
+      return json(res, 200, { connected: true, settings: publicSettings(candidate), ...result });
+    }
+
     if (req.method === "POST" && url.pathname === "/api/test-connection") {
-      const settings = await readSettings();
+      const settings = await readSettings(ownerId);
       assertConnected(settings);
-      const model = MODEL_CATALOG.image[1];
-      const payload = buildPayload("image", model, {
-        prompt: "Clean studio product photograph on a warm neutral background",
-        ratio: "1:1",
-        resolution: "720p",
-      });
-      const estimate = await hfJson(`/estimate${model.endpoint}`, { method: "POST", body: payload, settings });
-      return json(res, 200, { ok: true, estimate: normalizeEstimate(estimate, model, payload), model: model.label });
+      return json(res, 200, await testHiggsfieldConnection(settings));
     }
 
     if (req.method === "POST" && url.pathname === "/api/upload") {
       const body = await readJson(req);
       const parsed = parseDataUrl(body.dataUrl);
-      const settings = await readSettings();
+      const settings = await readSettings(ownerId);
       assertConnected(settings);
       const upload = await hfJson("/files/generate-upload-url", {
         method: "POST",
@@ -358,7 +389,7 @@ const server = createServer(async (req, res) => {
     if (req.method === "POST" && url.pathname === "/api/estimate") {
       const body = await readJson(req);
       const { kind, model } = validateGeneration(body);
-      const settings = await readSettings();
+      const settings = await readSettings(ownerId);
       assertConnected(settings);
       const payload = buildPayload(kind, model, body);
       const endpoint = resolveEndpoint(kind, model, body);
@@ -366,25 +397,25 @@ const server = createServer(async (req, res) => {
       return json(res, 200, {
         estimate: normalizeEstimate(estimate, model, payload),
         model: model.label,
-        willBlock: await wouldExceedCap(estimate.usd, settings),
+        willBlock: await wouldExceedCap(estimate.usd, settings, ownerId),
       });
     }
 
     if (req.method === "POST" && url.pathname === "/api/generate") {
       const body = await readJson(req);
       const { kind, model } = validateGeneration(body);
-      const settings = await readSettings();
+      const settings = await readSettings(ownerId);
       assertConnected(settings);
       const payload = buildPayload(kind, model, body);
       const endpoint = resolveEndpoint(kind, model, body);
       const estimateRaw = await hfJson(`/estimate${endpoint}`, { method: "POST", body: payload, settings });
       const estimate = normalizeEstimate(estimateRaw, model, payload);
-      if (await wouldExceedCap(estimate.usd, settings)) {
+      if (await wouldExceedCap(estimate.usd, settings, ownerId)) {
         throw new HttpError(402, "Stopped by your 30-day spending cap. Raise the cap in Settings only if you intend to spend more.");
       }
-      const pending = await readPending();
+      const pending = await readPending(ownerId);
       const fingerprint = requestFingerprint(kind, model.id, endpoint, payload);
-      const active = Object.values(pending).filter((item) => item.ownerId === LOCAL_OWNER_ID);
+      const active = Object.values(pending).filter((item) => item.ownerId === ownerId);
       if (active.some((item) => item.fingerprint === fingerprint)) {
         throw new HttpError(409, "This exact generation is already running. Wait for its result instead of paying twice.");
       }
@@ -394,7 +425,7 @@ const server = createServer(async (req, res) => {
       const submitted = await hfJson(endpoint, { method: "POST", body: payload, settings });
       if (!submitted.request_id) throw new HttpError(502, "Higgsfield accepted the request without returning a request ID.");
       const requestMeta = {
-        ownerId: LOCAL_OWNER_ID,
+        ownerId,
         kind,
         model,
         estimate,
@@ -407,25 +438,29 @@ const server = createServer(async (req, res) => {
       };
       liveRequests.set(submitted.request_id, requestMeta);
       pending[submitted.request_id] = requestMeta;
-      await writePrivateJson(PENDING_PATH, pending);
+      await writeOwnerJson(ownerId, "pending", pending);
       return json(res, 202, { requestId: submitted.request_id, status: submitted.status, estimate });
+    }
+
+    if (req.method === "GET" && url.pathname.startsWith("/api/media/")) {
+      return await serveOwnerMedia(ownerId, url.pathname.slice("/api/media/".length), res);
     }
 
     if (req.method === "GET" && url.pathname.startsWith("/api/status/")) {
       const requestId = url.pathname.slice("/api/status/".length);
       if (!/^[a-zA-Z0-9-]{6,120}$/.test(requestId)) throw new HttpError(400, "Invalid request ID.");
-      const ledger = await readLedger();
+      const ledger = await readLedger(ownerId);
       const archived = ledger.find((item) => item.id === requestId);
       if (archived) return json(res, 200, { status: "completed", outputUrl: archived.outputUrl, progress: 100, error: null });
-      const pending = await readPending();
+      const pending = await readPending(ownerId);
       const meta = liveRequests.get(requestId) || pending[requestId];
-      if (!meta || meta.ownerId !== LOCAL_OWNER_ID) throw new HttpError(404, "This generation does not belong to this local studio.");
-      const settings = await readSettings();
+      if (!meta || meta.ownerId !== ownerId) throw new HttpError(404, "This generation does not belong to this studio session.");
+      const settings = await readSettings(ownerId);
       assertConnected(settings);
       const raw = await hfJson(meta.statusUrl || safeRequestUrl("", requestId, "status"), { method: "GET", settings });
       const normalized = normalizeStatus(raw);
       if (normalized.status === "completed" && normalized.outputUrl && meta && !meta.recorded) {
-        const localUrl = await archiveOutput(normalized.outputUrl, requestId, meta.kind);
+        const localUrl = await archiveOutput(normalized.outputUrl, requestId, meta.kind, ownerId);
         const record = {
           id: requestId,
           kind: meta.kind,
@@ -438,16 +473,16 @@ const server = createServer(async (req, res) => {
           outputUrl: localUrl,
         };
         ledger.push(record);
-        await writePrivateJson(LEDGER_PATH, ledger);
+        await writeOwnerJson(ownerId, "ledger", ledger);
         meta.recorded = true;
         delete pending[requestId];
-        await writePrivateJson(PENDING_PATH, pending);
+        await writeOwnerJson(ownerId, "pending", pending);
         normalized.outputUrl = localUrl;
       }
       if (["failed", "nsfw", "canceled"].includes(normalized.status)) {
         delete pending[requestId];
         liveRequests.delete(requestId);
-        await writePrivateJson(PENDING_PATH, pending);
+        await writeOwnerJson(ownerId, "pending", pending);
       }
       return json(res, 200, normalized);
     }
@@ -462,8 +497,8 @@ const server = createServer(async (req, res) => {
 });
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  server.listen(PORT, "127.0.0.1", () => {
-    console.log(`NK Studio: http://127.0.0.1:${PORT}`);
+  server.listen(PORT, HOST, () => {
+    console.log(`NK Studio: http://${HOST}:${PORT}`);
     console.log(`Mode: ${MODE}`);
   });
 }
@@ -701,6 +736,29 @@ function hasCredentials(settings) {
   return Boolean(value.id && value.secret);
 }
 
+async function testHiggsfieldConnection(settings) {
+  const model = MODEL_CATALOG.image[1];
+  const payload = buildPayload("image", model, {
+    prompt: "Clean studio product photograph on a warm neutral background",
+    ratio: "1:1",
+    resolution: "720p",
+  });
+  const estimate = await hfJson(`/estimate${model.endpoint}`, { method: "POST", body: payload, settings });
+  return { ok: true, estimate: normalizeEstimate(estimate, model, payload), model: model.label };
+}
+
+function resolveHiggsfieldDestination(kind, configuredUrl = process.env.HIGGSFIELD_TRACKING_URL || "") {
+  const fallback = HIGGSFIELD_DESTINATIONS[kind] || HIGGSFIELD_DESTINATIONS.signup;
+  if (kind !== "signup" || !configuredUrl) return fallback;
+  try {
+    const target = new URL(configuredUrl);
+    const trustedHost = target.hostname === "higgsfield.ai" || target.hostname.endsWith(".higgsfield.ai");
+    return target.protocol === "https:" && trustedHost ? target.href : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function assertConnected(settings) {
   if (!hasCredentials(settings)) throw new HttpError(503, "Connect your Higgsfield API key in Settings first.");
 }
@@ -728,20 +786,22 @@ function normalizeStatus(value) {
   return { status, outputUrl, progress: value.progress ?? null, error: value.error || null };
 }
 
-async function archiveOutput(remoteUrl, requestId, kind) {
+async function archiveOutput(remoteUrl, requestId, kind, ownerId) {
   const response = await fetch(remoteUrl);
   if (!response.ok) return remoteUrl;
   const contentType = response.headers.get("content-type") || "";
   const extension = contentType.includes("video") || kind === "video" ? ".mp4" : contentType.includes("png") ? ".png" : ".jpg";
   const filename = `${requestId}${extension}`;
-  await writeFile(join(GENERATED, filename), Buffer.from(await response.arrayBuffer()));
-  return `/generated/${filename}`;
+  const paths = ownerPaths(ownerId);
+  await mkdir(paths.generated, { recursive: true });
+  await writeFile(join(paths.generated, filename), Buffer.from(await response.arrayBuffer()));
+  return ownerId === LOCAL_OWNER_ID ? `/generated/${filename}` : `/api/media/${filename}`;
 }
 
-async function wouldExceedCap(usd, settings) {
+async function wouldExceedCap(usd, settings, ownerId) {
   const cap = Number(settings.spendCapUsd || 0);
   if (!cap) return false;
-  const spend = summarizeSpend(await readLedger()).rolling30Days;
+  const spend = summarizeSpend(await readLedger(ownerId)).rolling30Days;
   return spend + Number(usd || 0) > cap;
 }
 
@@ -757,16 +817,35 @@ function summarizeSpend(ledger) {
   };
 }
 
-async function readSettings() {
-  return readJsonFile(SETTINGS_PATH, { spendCapUsd: 10, concurrentRequests: 2 });
+async function readSettings(ownerId = LOCAL_OWNER_ID) {
+  const paths = ownerPaths(ownerId);
+  const stored = await readJsonFile(paths.settings, { spendCapUsd: 10, concurrentRequests: 2 });
+  if (ownerId === LOCAL_OWNER_ID) return stored;
+  const credentials = decryptCredentials(stored.encryptedCredentials);
+  return { spendCapUsd: stored.spendCapUsd, concurrentRequests: stored.concurrentRequests, ...credentials };
 }
 
-async function readLedger() {
-  return readJsonFile(LEDGER_PATH, []);
+async function readLedger(ownerId = LOCAL_OWNER_ID) {
+  return readJsonFile(ownerPaths(ownerId).ledger, []);
 }
 
-async function readPending() {
-  return readJsonFile(PENDING_PATH, {});
+async function readPending(ownerId = LOCAL_OWNER_ID) {
+  return readJsonFile(ownerPaths(ownerId).pending, {});
+}
+
+async function writeSettings(ownerId, settings) {
+  if (ownerId === LOCAL_OWNER_ID) return writePrivateJson(SETTINGS_PATH, settings);
+  const stored = {
+    spendCapUsd: Number(settings.spendCapUsd || 0),
+    concurrentRequests: Number(settings.concurrentRequests || 2),
+    encryptedCredentials: encryptCredentials({ apiKeyId: settings.apiKeyId || "", apiKeySecret: settings.apiKeySecret || "" }),
+  };
+  return writePrivateJson(ownerPaths(ownerId).settings, stored);
+}
+
+async function writeOwnerJson(ownerId, kind, value) {
+  const paths = ownerPaths(ownerId);
+  return writePrivateJson(paths[kind], value);
 }
 
 async function readJsonFile(path, fallback) {
@@ -779,8 +858,78 @@ async function readJsonFile(path, fallback) {
 }
 
 async function writePrivateJson(path, value) {
+  await mkdir(join(path, ".."), { recursive: true });
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
   await chmod(path, 0o600);
+}
+
+function ownerPaths(ownerId) {
+  if (ownerId === LOCAL_OWNER_ID) {
+    return { settings: SETTINGS_PATH, ledger: LEDGER_PATH, pending: PENDING_PATH, generated: GENERATED };
+  }
+  if (!/^[a-f0-9]{32}$/.test(ownerId)) throw new HttpError(400, "Invalid studio session.");
+  const root = join(DATA, "users", ownerId);
+  return {
+    settings: join(root, "settings.json"),
+    ledger: join(root, "ledger.json"),
+    pending: join(root, "pending.json"),
+    generated: join(root, "generated"),
+  };
+}
+
+function resolveOwnerId(req, res) {
+  const host = String(req.headers.host || "").split(":")[0].toLowerCase();
+  if (host === "127.0.0.1" || host === "localhost" || host === "[::1]") return LOCAL_OWNER_ID;
+  const secret = sessionSecret();
+  const cookies = Object.fromEntries(String(req.headers.cookie || "").split(";").map((part) => part.trim()).filter(Boolean).map((part) => {
+    const split = part.indexOf("=");
+    return split < 1 ? [part, ""] : [part.slice(0, split), decodeURIComponent(part.slice(split + 1))];
+  }));
+  const [candidate, signature] = String(cookies.nk_session || "").split(".");
+  if (/^[a-f0-9]{32}$/.test(candidate || "") && secureEqual(signature || "", signOwner(candidate, secret))) return candidate;
+  const ownerId = randomBytes(16).toString("hex");
+  const secure = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim() === "https";
+  res.setHeader("Set-Cookie", `nk_session=${ownerId}.${signOwner(ownerId, secret)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000${secure ? "; Secure" : ""}`);
+  return ownerId;
+}
+
+function sessionSecret() {
+  const value = String(process.env.NK_SESSION_SECRET || "");
+  if (value.length >= 32) return value;
+  throw new HttpError(503, "The hosted studio is not configured securely yet.");
+}
+
+function signOwner(ownerId, secret) {
+  return createHmac("sha256", secret).update(ownerId).digest("base64url");
+}
+
+function secureEqual(left, right) {
+  const a = Buffer.from(left);
+  const b = Buffer.from(right);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+function encryptCredentials(credentials) {
+  if (!credentials.apiKeyId || !credentials.apiKeySecret) return "";
+  const key = createHash("sha256").update(sessionSecret()).digest();
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  const encrypted = Buffer.concat([cipher.update(JSON.stringify(credentials), "utf8"), cipher.final()]);
+  return `v1.${iv.toString("base64url")}.${cipher.getAuthTag().toString("base64url")}.${encrypted.toString("base64url")}`;
+}
+
+function decryptCredentials(value) {
+  if (!value) return { apiKeyId: "", apiKeySecret: "" };
+  try {
+    const [version, ivText, tagText, encryptedText] = String(value).split(".");
+    if (version !== "v1") throw new Error("Unsupported credential version");
+    const key = createHash("sha256").update(sessionSecret()).digest();
+    const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(ivText, "base64url"));
+    decipher.setAuthTag(Buffer.from(tagText, "base64url"));
+    return JSON.parse(Buffer.concat([decipher.update(Buffer.from(encryptedText, "base64url")), decipher.final()]).toString("utf8"));
+  } catch {
+    return { apiKeyId: "", apiKeySecret: "" };
+  }
 }
 
 function publicSettings(settings) {
@@ -857,9 +1006,27 @@ async function serveStatic(pathname, res) {
   res.end(await readFile(full));
 }
 
+async function serveOwnerMedia(ownerId, filename, res) {
+  if (ownerId === LOCAL_OWNER_ID) throw new HttpError(404, "Not found.");
+  if (!/^[a-zA-Z0-9-]{6,120}\.(?:mp4|png|jpg|jpeg|webp)$/.test(filename)) throw new HttpError(404, "Not found.");
+  const expectedUrl = `/api/media/${filename}`;
+  const ledger = await readLedger(ownerId);
+  if (!ledger.some((item) => item.outputUrl === expectedUrl)) throw new HttpError(404, "This file does not belong to this studio session.");
+  const full = join(ownerPaths(ownerId).generated, filename);
+  if (!existsSync(full)) throw new HttpError(404, "This generated file is no longer available.");
+  const type = { ".mp4": "video/mp4", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp" }[extname(full)] || "application/octet-stream";
+  res.writeHead(200, { "Content-Type": type, "Cache-Control": "private, max-age=31536000", "X-Content-Type-Options": "nosniff" });
+  res.end(await readFile(full));
+}
+
 function json(res, statusCode, payload) {
   res.writeHead(statusCode, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
   res.end(JSON.stringify(payload));
+}
+
+function redirect(res, target) {
+  res.writeHead(302, { Location: target, "Cache-Control": "no-store" });
+  res.end();
 }
 
 class HttpError extends Error {
@@ -869,4 +1036,4 @@ class HttpError extends Error {
   }
 }
 
-export { buildPayload, resolveEndpoint, safeRequestUrl, sanitizeModelSettings, summarizeSpend, validateGeneration, MODEL_CATALOG };
+export { buildPayload, resolveEndpoint, resolveHiggsfieldDestination, safeRequestUrl, sanitizeModelSettings, summarizeSpend, validateGeneration, MODEL_CATALOG };

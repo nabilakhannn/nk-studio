@@ -25,6 +25,13 @@ try {
   page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(message.text()); });
   await page.goto(base, { waitUntil: "networkidle" });
 
+  if (!(await page.getByRole("link", { name: /Get Higgsfield API access/ }).isVisible())) {
+    throw new Error("The guided Higgsfield signup step is missing.");
+  }
+  if (!(await page.getByRole("button", { name: /Connect and test/ }).isVisible())) {
+    throw new Error("The one-step credential connection action is missing.");
+  }
+
   await page.getByRole("button", { name: /Create B-roll/ }).click();
   await page.getByLabel("Paste one line from your script").fill("One API can replace a shelf full of expensive subscriptions.");
   await page.getByRole("button", { name: "Build my B-roll prompt" }).click();
@@ -45,7 +52,7 @@ try {
     throw new Error("B-roll action is not visible on a phone-sized viewport.");
   }
   if (consoleErrors.length) throw new Error(`Browser console errors: ${consoleErrors.join(" | ")}`);
-  console.log("Browser check passed: B-roll discovery, prompt building, model default, branding and mobile layout.");
+  console.log("Browser check passed: guided onboarding, B-roll discovery, prompt building, model default, branding and mobile layout.");
 } finally {
   await browser?.close();
   server.kill("SIGTERM");

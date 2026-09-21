@@ -67,14 +67,8 @@ function bindForms() {
   document.querySelectorAll("[data-video-purpose]").forEach((button) => button.addEventListener("click", () => setVideoPurpose(button.dataset.videoPurpose)));
   document.getElementById("buildBrollPrompt").addEventListener("click", buildBrollPrompt);
 
-  document.getElementById("settingsForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    await api("/api/settings", { method: "POST", body: { apiKeyId: form.get("apiKeyId"), apiKeySecret: form.get("apiKeySecret") } });
-    event.currentTarget.reset();
-    await refresh();
-    toast("API key saved privately on this computer.");
-  });
+  document.getElementById("quickConnectForm").addEventListener("submit", connectCredentials);
+  document.getElementById("settingsForm").addEventListener("submit", connectCredentials);
   document.getElementById("limitsForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -96,6 +90,33 @@ function renderConnection() {
   document.getElementById("connectionDot").classList.toggle("on", connected);
   document.getElementById("connectionText").textContent = connected ? "Connected" : "Not connected";
   document.getElementById("capBadge").textContent = state.bootstrap.settings.spendCapUsd ? `$${state.bootstrap.settings.spendCapUsd}` : "Off";
+  document.getElementById("onboardingCard").hidden = connected;
+  document.getElementById("connectedWelcome").hidden = !connected;
+}
+
+async function connectCredentials(event) {
+  event.preventDefault();
+  const formElement = event.currentTarget;
+  const submit = formElement.querySelector("button[type='submit']");
+  const form = new FormData(formElement);
+  submit.disabled = true;
+  const original = submit.innerHTML;
+  submit.textContent = "Checking with Higgsfield...";
+  try {
+    const result = await api("/api/connect", {
+      method: "POST",
+      body: { apiKeyId: form.get("apiKeyId"), apiKeySecret: form.get("apiKeySecret") },
+    });
+    formElement.reset();
+    await refresh();
+    showView("home");
+    toast(`Connected. Live ${result.model} test price: $${result.estimate.usd}`);
+  } catch (error) {
+    toast(`Not saved. ${error.message}`, true);
+  } finally {
+    submit.disabled = false;
+    submit.innerHTML = original;
+  }
 }
 
 function renderModels(kind) {

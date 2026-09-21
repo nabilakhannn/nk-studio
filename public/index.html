@@ -30,6 +30,32 @@
         </header>
 
         <section class="view active" id="view-home">
+          <section class="onboarding-card" id="onboardingCard" aria-labelledby="onboardingTitle">
+            <div class="onboarding-copy">
+              <p class="eyebrow">START IN THREE SIMPLE STEPS</p>
+              <h2 id="onboardingTitle">Connect Higgsfield once. Then create here.</h2>
+              <p>NK Studio has no subscription. Your own Higgsfield balance pays only for the images and videos you choose to generate.</p>
+              <div class="guided-actions">
+                <a class="primary button-link" href="/go/higgsfield" target="_blank" rel="noreferrer">1. Get Higgsfield API access <span>↗</span></a>
+                <a class="secondary button-link" href="/go/higgsfield/billing" target="_blank" rel="noreferrer">Add API credits ↗</a>
+                <a class="secondary button-link" href="/go/higgsfield/keys" target="_blank" rel="noreferrer">2. Create API key ↗</a>
+              </div>
+              <p class="micro">The first button uses Nabila's official tracking link. Higgsfield keeps your account and billing.</p>
+            </div>
+            <form class="connect-card" id="quickConnectForm">
+              <div class="step-label">3 · RETURN HERE AND CONNECT ONCE</div>
+              <label>Key ID<input type="password" name="apiKeyId" autocomplete="off" placeholder="Paste Key ID" required /></label>
+              <label>Key secret<input type="password" name="apiKeySecret" autocomplete="off" placeholder="Paste Key Secret" required /></label>
+              <button class="primary" type="submit">Connect and test <span>→</span></button>
+              <p class="micro">The key is checked before it is saved. Never share it in a video or screenshot.</p>
+            </form>
+          </section>
+
+          <section class="connected-welcome" id="connectedWelcome" hidden>
+            <div><i></i><div><strong>Higgsfield is connected</strong><span>You can see the real price before every generation.</span></div></div>
+            <button class="secondary" data-go="image">Create now <span>→</span></button>
+          </section>
+
           <div class="hero-card">
             <div><p class="eyebrow">PAY ONLY WHEN YOU CREATE</p><h2>One key. The right model for every job.</h2><p>Choose the model that fits your result, let NK Studio show only its valid controls, and see the real API estimate before any request runs.</p></div>
             <button class="primary" data-go="image">Create your first image <span>→</span></button>
@@ -100,7 +126,7 @@
 
         <section class="view" id="view-settings">
           <div class="settings-grid">
-            <form class="settings-card" id="settingsForm"><p class="eyebrow">PRIVATE CONNECTION</p><h2>Connect Higgsfield</h2><p>Your key is sent only to this app on <strong>your own computer</strong>, stored in a private local file, and never shown back on screen.</p><label>Key ID<input type="password" name="apiKeyId" autocomplete="off" placeholder="Paste Key ID" /></label><label>Key secret<input type="password" name="apiKeySecret" autocomplete="off" placeholder="Paste Key Secret" /></label><div class="button-row"><button class="primary" type="submit">Save privately</button><button class="secondary" type="button" id="testConnection">Test connection</button></div><a class="external" href="https://open.higgsfield.ai/" target="_blank" rel="noreferrer">Open Higgsfield API dashboard ↗</a></form>
+            <form class="settings-card" id="settingsForm"><p class="eyebrow">PRIVATE CONNECTION</p><h2>Connect Higgsfield</h2><p>Use your own Higgsfield API key. NK Studio tests it before saving and never shows the secret back on screen.</p><label>Key ID<input type="password" name="apiKeyId" autocomplete="off" placeholder="Paste Key ID" required /></label><label>Key secret<input type="password" name="apiKeySecret" autocomplete="off" placeholder="Paste Key Secret" required /></label><div class="button-row"><button class="primary" type="submit">Connect and test</button><button class="secondary" type="button" id="testConnection">Test saved key</button></div><div class="settings-links"><a class="external" href="/go/higgsfield" target="_blank" rel="noreferrer">Get Higgsfield API access ↗</a><a class="external" href="/go/higgsfield/keys" target="_blank" rel="noreferrer">Create or replace a key ↗</a></div></form>
             <form class="settings-card" id="limitsForm"><p class="eyebrow">SPENDING GUARDRAIL</p><h2>Set a hard cap</h2><p>NK Studio checks the real estimate before every request. If it would cross this rolling 30-day limit, the generation is blocked.</p><label>30-day cap (USD)<input type="number" name="spendCapUsd" min="0" step="1" value="10" /></label><label>Concurrent requests<select name="concurrentRequests"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label><button class="primary" type="submit">Save limit</button><p class="micro">Set $0 only if you intentionally want no cap.</p></form>
           </div>
         </section>
